@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Company Research</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="app">
+    <header class="app-header">
+      <div class="logo-dot"></div>
+      <div>
+        <h1>Company Research</h1>
+        <p class="subtitle">Ask about any company. Powered by a local Ollama model.</p>
+      </div>
+      <span id="health-badge" class="badge badge-unknown">checking…</span>
+    </header>
+
+    <main id="chat" class="chat">
+      <div class="message bot">
+        <div class="bubble">
+          Hi! Enter a company name below — and optionally its website URL — and I'll
+          research it for you: summary, target customers, value proposition, and
+          sales outreach angles.
+        </div>
+      </div>
+    </main>
+
+    <footer class="composer">
+      <form id="research-form" autocomplete="off">
+        <div class="inputs">
+          <input
+            id="company-name"
+            type="text"
+            placeholder="Company name (required), e.g. Stripe"
+            required
+            maxlength="200"
+          />
+          <input
+            id="company-url"
+            type="url"
+            placeholder="Website URL (optional), e.g. https://stripe.com"
+          />
+        </div>
+        <button id="send-btn" type="submit">
+          <span class="btn-label">Research</span>
+        </button>
+      </form>
+    </footer>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
