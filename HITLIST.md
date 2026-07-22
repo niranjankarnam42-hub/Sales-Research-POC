@@ -40,12 +40,28 @@ Track this project from local proof of concept to `naniweb.com/company_research`
 - [x] Render raw JSON for debugging
 - [x] Handle API errors clearly
 
+## Phase 3.4: Tool Use + Provider Abstraction (assignment centerpiece)
+
+- [x] Add provider abstraction with `LLM_PROVIDER` env var (`ollama` | `claude`)
+- [x] Keep Ollama as free local dev mode
+- [x] Add Claude cloud provider via Anthropic Messages API
+- [x] Define `fetch_page` as a model-invocable tool
+- [x] Build request/execute/feed-back tool-use loop (`app/agent.py`)
+- [x] Let the model request extra pages (`/about`, `/pricing`, ...)
+- [x] Feed fetch errors (e.g. 403) back to the model instead of failing
+- [x] Remove unused `openai` dependency; add `anthropic`
+- [x] Cover the tool-use loop in tests with a scripted fake provider
+- [ ] Get Anthropic API access and run one live `LLM_PROVIDER=claude` request
+
+Note on scope: the frontend (Phase 3) was built before the tool-use core.
+Keep it for demos, but the discipline is build the ugly core first.
+
 ## Phase 3.5: Langfuse Observability
 
 - [x] Add optional Langfuse SDK integration
-- [x] Trace `/research` as a chain
+- [x] Trace `/research` and the agent loop as chains
 - [x] Trace `fetch_page` as a tool span
-- [x] Trace Ollama calls as generations
+- [x] Trace provider calls (`ollama-chat` / `claude-chat`) as generations
 - [x] Keep app working when Langfuse keys are missing
 - [x] Document Langfuse env vars in README and `.env.example`
 - [ ] Create a Langfuse project and add keys to local `.env`

@@ -1,8 +1,8 @@
+anthropic
 beautifulsoup4
 fastapi
 httpx
 langfuse
-openai
 pytest
 python-dotenv
 uvicorn

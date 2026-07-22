@@ -6,17 +6,15 @@ from fastapi import FastAPI, HTTPException
 from fastapi.staticfiles import StaticFiles
 from pydantic import ValidationError
 
-from app.fetch_page import FetchPageError, fetch_page
-from app.llm import OllamaError, generate_research_json, get_model_name
+from app.agent import AgentError, run_research_agent
 from app.models import (
     CompanyResearch,
     ResearchRequest,
     ResearchResponse,
     sanitize_raw_research,
 )
-from app.prompts import build_research_prompt
+from app.providers import ProviderError, get_provider
 from app.tracing import flush_langfuse, is_langfuse_enabled, observe, update_span
-
 
 load_dotenv()
 
@@ -32,8 +30,14 @@ app = FastAPI(title="Sales Research POC", lifespan=lifespan)
 
 @app.get("/health")
 def health() -> dict[str, str | bool]:
+    try:
+        provider_label = get_provider().label
+    except ProviderError as exc:
+        provider_label = f"unavailable ({exc})"
+
     return {
         "status": "ok",
+        "provider": provider_label,
         "langfuse_enabled": is_langfuse_enabled(),
     }
 
@@ -41,34 +45,22 @@ def health() -> dict[str, str | bool]:
 @app.post("/research", response_model=ResearchResponse)
 @observe(name="research-company", as_type="chain")
 def research_company(request: ResearchRequest) -> ResearchResponse:
-    page_text = ""
     source_url = str(request.company_url) if request.company_url else None
 
-    update_span(
-        metadata={
-            "company_name": request.company_name,
-            "company_url": source_url,
-            "model": get_model_name(),
-        }
-    )
-
-    if source_url:
-        try:
-            page_text = fetch_page(source_url)
-        except FetchPageError as exc:
-            update_span(level="ERROR", status_message=str(exc))
-            raise HTTPException(status_code=502, detail=str(exc)) from exc
-
-    prompt = build_research_prompt(
-        company_name=request.company_name,
-        company_url=source_url,
-        page_text=page_text,
-    )
+    try:
+        provider = get_provider()
+    except ProviderError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
 
     try:
-        raw_research = sanitize_raw_research(generate_research_json(prompt))
+        raw_research = sanitize_raw_research(
+            run_research_agent(request.company_name, source_url, provider=provider)
+        )
         research = CompanyResearch.model_validate(raw_research)
-    except OllamaError as exc:
+    except ProviderError as exc:
+        update_span(level="ERROR", status_message=str(exc))
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
+    except AgentError as exc:
         update_span(level="ERROR", status_message=str(exc))
         raise HTTPException(status_code=502, detail=str(exc)) from exc
     except ValidationError as exc:
@@ -78,7 +70,7 @@ def research_company(request: ResearchRequest) -> ResearchResponse:
             detail=f"Model returned invalid research JSON: {exc.errors()}",
         ) from exc
 
-    response = ResearchResponse(model=get_model_name(), research=research)
+    response = ResearchResponse(model=provider.label, research=research)
     update_span(output={"company_name": research.company_name, "model": response.model})
     flush_langfuse()
     return response
